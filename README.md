@@ -1,9 +1,6 @@
 # PhotoClip
-图片裁剪
-/**
  * 轻量图片裁剪插件
  * 作者： yangxiao
- */
  
 使用方法:
 var clip = new Clip(element, options);
