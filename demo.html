@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="./Clip.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #clip {
+            position: relative;
+            width: 500px;
+            height: 400px;
+        }
+
+        #preview {
+            border: 1px solid;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="clip"></div>
+    <br>
+    <input type="file" name="" id="file">
+    <button type="button" id="jia">+++++</button>
+    <button type="button" id="jian">-----</button>
+    <button type="button" id="cai">裁剪</button>
+    <button type="button" id="load">加载网络图片</button>
+    <br>
+    <br>
+    <input type="range" name="" id="slide" value="0.01" min="0.01" max="1" step="0.01">
+    <br>
+    <img src="" id="preview" alt="">
+</body>
+<script>
+    var clip = new Clip(document.getElementById('clip'), {
+        clipSize: [350, 200],
+        outputSize: 1.5,
+        fillBackground: '#fff',
+        loaddone: function () {
+            document.getElementById('slide').max = clip.imageScaleMax;
+            document.getElementById('slide').min = clip.imageScaleMin;
+            document.getElementById('slide').value = clip.imageScaleRatio;
+            document.getElementById('slide').step = (clip.imageScaleMax - clip.imageScaleMin) / 100;
+        },
+        scaleChange: function (scale) {
+            document.getElementById('slide').value = scale;
+        },
+        error: function () {
+            document.getElementById('file').value = null;
+        },
+    });
+    document.getElementById('file').onchange = function (e) {
+        clip.load(this.files[0]);
+    }
+    document.getElementById('load').onclick = function (e) {
+        clip.load('http://file.500d.me/upload/image/201811/01/34a66513-66fd-462a-971c-c883dcfafe7d.png');
+    }
+    document.getElementById('cai').onclick = function (e) {
+        document.getElementById('preview').src = clip.toDataURL();
+    }
+    document.getElementById('jia').onclick = function (e) {
+        clip.scale(10);
+    }
+    document.getElementById('jian').onclick = function (e) {
+        clip.scale(-10);
+    }
+    document.getElementById('slide').oninput = function (e) {
+        var scaleRatio = clip.imageScaleRatio;
+        var val = this.value;
+        clip.scale(clip.sourceImageWidth * val - clip.sourceImageWidth * scaleRatio);
+    }
+</script>
+
+</html>
