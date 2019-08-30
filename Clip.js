@@ -18,8 +18,10 @@
  * Clip.set() 重新设置 实例 options 对象
  * Clip.destroy() 销毁实例
  * Clip.toDataURL() 生成图片
+ * Clip.tiFile() 生成文件
  * Clip.scale() 设置/返回缩放值
  * Clip.el => 裁剪容器
+ * Clip.fileName => 原图片名称
  * Clip.sourceImage => 裁剪源图片
  * Clip.sourceImageURL => 源图片uri
  * Clip.sourceImageWidth => 原图尺寸
@@ -250,8 +252,10 @@
             if (t.opt.wheelScale) {
                 bindWheel(t);
             }
+            t.fileName = file.substring(file.lastIndexOf("/") + 1 , file.length);
         } else {
             // 文件
+        	t.fileName = file.name;
             var fileReader = new FileReader();
             fileReader.readAsDataURL(file);
             fileReader.onload = function (e) {
@@ -344,6 +348,26 @@
             }
             ctx.drawImage(img, parseInt(img.style.left) * outputRatio, parseInt(img.style.top) * outputRatio, img.width * outputRatio, img.height * outputRatio);
             return canvas.toDataURL(imageType, imageQuality);
+        },
+        /**
+         * 生成裁剪后的File文件
+         * @param {*} fileName = 文件名称
+         * @param {*} type = 图片类型  默认png
+         * @param {*} quality = 图片质量 0.1 - 1
+         */
+        toFile: function (fileName, type, quality) {
+            var imageType = type || this.fileName.substring(this.fileName.lastIndexOf('.') + 1, this.fileName.length);
+        	var dataurl = this.toDataURL(imageType, quality);
+            var arr = dataurl.split(','),
+                mime = arr[0].match(/:(.*?);/)[1],
+                bstr = atob(arr[1]),
+                n = bstr.length,
+                u8arr = new Uint8Array(n);
+	        while (n--) {
+	            u8arr[n] = bstr.charCodeAt(n);
+	        }
+	        var theBlob = new Blob([u8arr], { type: mime });
+	        return new File([theBlob], fileName + '.' + imageType || this.fileName, { type: mime });
         },
         /**
          * 缩放图片 设置 value 像素值 支持负数
