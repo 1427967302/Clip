@@ -66,6 +66,8 @@ set()           => 重新配置options, agument[0] = key, agument[1] = value
 
 toDataURL()     => 方法返回裁剪后的base64码
 
+toFile()        => 方法返回裁剪后的文件流
+
 scale()         => 设置缩放，单位像素，agument[0] = 缩放值
 
 destroy()       => 销毁当前实例
