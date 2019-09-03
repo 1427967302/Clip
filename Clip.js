@@ -108,6 +108,7 @@
         el.innerHTML = '';
         el.style.overflow = 'hidden';
         el.style.userSelect = 'none';
+        el.style.cursor = 'move';
         var elW = el.clientWidth;
         var elH = el.clientHeight;
         // 裁剪框结构
@@ -246,7 +247,11 @@
         t.el.onwheel = null;
         // 网络地址请求
         if (typeof file === 'string' && /^http(s)?:\/\//.test(file)) {
-            t.sourceImageURL = file + '?t=' + new Date().getTime();
+            var update = '';
+            if (t.opt.CrossOrigin) {
+                update = '?t=' + new Date().getTime();
+            }
+            t.sourceImageURL = file + update;
             create(t);
             bindDrag(t);
             if (t.opt.wheelScale) {
@@ -332,6 +337,7 @@
          */
         toDataURL: function (type, quality) {
             if (!this.sourceImage) return;
+            if (type === 'jpg') type = 'jpeg';
             var imageType = type ? 'image/' + type : 'image/png';
             var imageQuality = quality || 1;
             var img = this.sourceImage;
@@ -356,8 +362,9 @@
          * @param {*} quality = 图片质量 0.1 - 1
          */
         toFile: function (fileName, type, quality) {
+            var file_name = fileName || '';
             var imageType = type || this.fileName.substring(this.fileName.lastIndexOf('.') + 1, this.fileName.length);
-        	var dataurl = this.toDataURL(imageType, quality);
+            var dataurl = this.toDataURL(imageType, quality);
             var arr = dataurl.split(','),
                 mime = arr[0].match(/:(.*?);/)[1],
                 bstr = atob(arr[1]),
@@ -366,8 +373,9 @@
 	        while (n--) {
 	            u8arr[n] = bstr.charCodeAt(n);
 	        }
-	        var theBlob = new Blob([u8arr], { type: mime });
-	        return new File([theBlob], fileName + '.' + imageType || this.fileName, { type: mime });
+            var theBlob = new Blob([u8arr], { type: mime });
+            var file = new File([theBlob], file_name ? file_name + '.' + imageType : this.fileName, { type: mime });
+	        return file;
         },
         /**
          * 缩放图片 设置 value 像素值 支持负数
