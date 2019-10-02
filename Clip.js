@@ -18,7 +18,7 @@
  * Clip.set() 重新设置 实例 options 对象
  * Clip.destroy() 销毁实例
  * Clip.toDataURL() 生成图片
- * Clip.tiFile() 生成文件
+ * Clip.toBlob() 生成文件
  * Clip.scale() 设置/返回缩放值
  * Clip.el => 裁剪容器
  * Clip.fileName => 原图片名称
@@ -129,22 +129,26 @@
         }
         layerImg.src = t.sourceImageURL;
         layerImg.onload = function (e) {
-            t.sourceImage = this;
-            t.sourceImageWidth = this.width;
-            t.sourceImageHeight = this.height;
-            var imgRatio = this.width / this.height;
-            // 图片自适应居中
-            this.width = t.opt.clipSize[0];
-            this.height = this.width / imgRatio;
-            layer.appendChild(this);
-            t.imageScaleRatio = this.width / t.sourceImageWidth;
-            t.imageScaleMin = t.opt.clipSize[0] / 5 / t.sourceImageWidth;
-            t.imageScaleMax = t.opt.clipSize[0] * 5 / t.sourceImageWidth;
-            this.style.position = 'relative';
-            this.style.left = -((this.width - t.opt.clipSize[0]) / 2) + 'px';
-            this.style.top = -((this.height - t.opt.clipSize[1]) / 2) + 'px';
-            this.removeAttribute('height');
-            if (typeof t.opt.loaddone === 'function') t.opt.loaddone();
+            var that = e.target;
+            t.sourceImage = that;
+            t.sourceImageWidth = that.width;
+            t.sourceImageHeight = that.height;
+            var imgRatio = that.width / that.height;
+            // 解决 ie 无法成功设置width
+            setTimeout(function() {
+                // 图片自适应居中
+                that.width = t.opt.clipSize[0];
+                that.height = that.width / imgRatio;
+                t.imageScaleRatio = that.width / t.sourceImageWidth;
+                t.imageScaleMin = t.opt.clipSize[0] / 5 / t.sourceImageWidth;
+                t.imageScaleMax = t.opt.clipSize[0] * 5 / t.sourceImageWidth;
+                that.style.position = 'relative';
+                that.style.left = -((that.width - t.opt.clipSize[0]) / 2) + 'px';
+                that.style.top = -((that.height - t.opt.clipSize[1]) / 2) + 'px';
+                that.removeAttribute('height');
+                if (typeof t.opt.loaddone === 'function') t.opt.loaddone();
+                layer.appendChild(that);
+            }, 0);
         };
         layerImg.onerror = function () {
             if (typeof t.opt.error === 'function') t.opt.error();
@@ -152,7 +156,7 @@
         fragment.appendChild(layer);
         // 遮罩层
         var mask = document.createElement('div');
-        var maskStyle = 'position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; box-sizing: border-box;';
+        var maskStyle = 'position: absolute; top: 0; right: 0; bottom: 0; left: 0; box-sizing: border-box; user-select: none;';
         mask.className = 'clip-mask';
         mask.setAttribute('style', maskStyle);
         var maskCenter = document.createElement('div');
@@ -231,20 +235,18 @@
     // 绑定滚动缩放
     function bindWheel(t) {
         var wheelEl = t.el;
-        wheelEl.onwheel = null;
-        wheelEl.onwheel = function (e) {
+        wheelEl.querySelector('.clip-mask').addEventListener('wheel', function (e) {
             var dy = e.deltaY || e.wheelDeltaY;
             var value = dy < 0 ? t.opt.scaleValue : -t.opt.scaleValue;
             t.scale(value);
             e.preventDefault();
-        }
+        });
     };
     // 裁剪功能创建
     function init(t, file) {
         // 重新初始化元素操作
         t.el.innerHTML = '';
         t.el.onmousedown = null;
-        t.el.onwheel = null;
         // 网络地址请求
         if (typeof file === 'string' && /^http(s)?:\/\//.test(file)) {
             var update = '';
@@ -352,17 +354,17 @@
                 ctx.fillStyle = background;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
+            img.height = img.clientHeight;
             ctx.drawImage(img, parseInt(img.style.left) * outputRatio, parseInt(img.style.top) * outputRatio, img.width * outputRatio, img.height * outputRatio);
+            img.removeAttribute('height');
             return canvas.toDataURL(imageType, imageQuality);
         },
         /**
-         * 生成裁剪后的File文件
-         * @param {*} fileName = 文件名称
+         * 生成裁剪后的Blob文件
          * @param {*} type = 图片类型  默认png
          * @param {*} quality = 图片质量 0.1 - 1
          */
-        toFile: function (fileName, type, quality) {
-            var file_name = fileName || '';
+        toBlob: function (type, quality) {
             var imageType = type || this.fileName.substring(this.fileName.lastIndexOf('.') + 1, this.fileName.length);
             var dataurl = this.toDataURL(imageType, quality);
             var arr = dataurl.split(','),
@@ -374,8 +376,7 @@
 	            u8arr[n] = bstr.charCodeAt(n);
 	        }
             var theBlob = new Blob([u8arr], { type: mime });
-            var file = new File([theBlob], file_name ? file_name + '.' + imageType : this.fileName, { type: mime });
-	        return file;
+	        return theBlob;
         },
         /**
          * 缩放图片 设置 value 像素值 支持负数
@@ -393,9 +394,11 @@
             // 最大值
             if (v > 0 && (img.width + v) >= this.sourceImageWidth * this.imageScaleMax) return;
             img.width += v;
+            img.height = img.clientHeight;
             img.style.left = (imgLeft - v / 2) + 'px';
             var imgRatio = Number((img.height / img.width).toFixed(1));
             img.style.top = (imgTop - v / 2 * imgRatio) + 'px';
+            img.removeAttribute('height');
             this.imageScaleRatio = img.width / this.sourceImageWidth;
             if (typeof this.opt.scaleChange === 'function') this.opt.scaleChange(this.imageScaleRatio);
             return this;
